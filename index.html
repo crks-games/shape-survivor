@@ -495,6 +495,26 @@
     <script type="module">
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const Assets = {
+                background : new Image(),
+                player: new Image(),
+                enemies: {
+                    boss: new Image(),
+                    dasher: new Image(),
+                    hexagon: new Image(),
+                    kamikaze: new Image(),
+                    pentagon: new Image(),
+                    shielder: new Image(),
+                    square: new Image(),
+                    summoner: new Image(),
+                    swarm: new Image(),
+                    tank: new Image(),
+                    normal: new Image(),
+                    wisp: new Image(),
+                    leech: new Image(),
+                    player: new Image()
+                   }
+            };
 
         const startScreen = document.getElementById('startScreen');
         const levelUpModal = document.getElementById('levelUpModal');
@@ -1051,6 +1071,24 @@
         // --- End Rarity ---
 
         function initGame() {
+                        // Load sources
+            Assets.player.src = 'assets/player.png';
+            Assets.background.src = 'assets/background.png'
+            Assets.enemies.normal.src = 'assets/tri.png';
+            Assets.enemies.boss.src = 'assets/boss.png';
+            Assets.enemies.dasher.src = 'assets/dasher.png';
+            Assets.enemies.hexagon.src = 'assets/elite.png';
+            Assets.enemies.leech.src = 'assets/leech.png';
+            Assets.enemies.pentagon.src = 'assets/pentagon.png';
+            Assets.enemies.shielder.src = 'assets/shielder.png';
+            Assets.enemies.square.src = 'assets/square.png';
+            Assets.enemies.summoner.src = 'assets/summoner.png';
+            Assets.enemies.swarm.src = 'assets/swarm.png';
+            Assets.enemies.tank.src = 'assets/tank.png';
+            Assets.enemies.wisp.src = 'assets/wisp.png';
+            Assets.enemies.kamikaze.src = 'assets/kamikaze.png';
+            Assets.enemies.player.src = 'assets/player.png'
+
             resizeCanvas();
             
             player.x = canvas.width / 2;
@@ -2281,7 +2319,7 @@ if (laser.active) {
                     }
 
                     let sides, color, hp, speed, radius, xpValue, damage, dropsWeaponUpgrade = false;
-                    let enemyType = 'normal';
+                    let enemyType = 'player';
                     const typeRoll = Math.random();
                     
                     const baseProps = getNewEnemyBaseProps(now);
@@ -2291,6 +2329,7 @@ if (laser.active) {
                         hp = 8 + game.wave * 2;
                         speed = 1 + Math.random() * 0.5 + game.wave * 0.12;
                         damage = 50; xpValue = 2;
+                        enemyType = 'normal'
                     } else if (typeRoll < 0.30) { // NEW: Swarm
                         sides = 3; color = '#DC2626'; radius = 8;
                         hp = 3 + game.wave * 1;
@@ -2312,11 +2351,13 @@ if (laser.active) {
                         hp = 25 + game.wave * 3.5;
                         speed = 0.8 + Math.random() * 0.4 + game.wave * 0.07;
                         damage = 100; xpValue = 6;
+                        enemyType = 'normal'
                     } else if (typeRoll < 0.50) { // Pentagon
                         sides = 5; color = '#C084FC'; radius = 18;
                         hp = 50 + game.wave * 6;
                         speed = 0.6 + Math.random() * 0.3 + game.wave * 0.05;
                         damage = 150; xpValue = 10;
+                        enemyType = 'pentagon'
                     } else if (typeRoll < 0.58) { // Hexagon (Elite)
                         sides = 6; color = '#F59E0B'; radius = 20;
                         hp = 100 + game.wave * 12;
@@ -2380,6 +2421,7 @@ if (laser.active) {
                         hp = 8 + game.wave * 2;
                         speed = 1 + Math.random() * 0.5 + game.wave * 0.12;
                         damage = 50; xpValue = 2;
+                        enemyType = 'normal'
                     }
 
                     if (enemyType !== 'swarm') { // Swarm is handled specially
@@ -3829,9 +3871,29 @@ if (laser.active) {
             document.getElementById('finalTime').textContent = formatTime(game.timer);
             gameOverScreen.style.display = 'block';
         }
+        function drawEntityImage(img, x, y, radius, rotation = 0, alpha = 1) {
+            if (!img.complete) return;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            ctx.globalAlpha = alpha;
+
+            const size = radius * 2;
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+
+            ctx.restore();
+            ctx.globalAlpha = 1.0;
+        }
 
         function draw(now) { // FIX: Added 'now'
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.drawImage(Assets.background, 0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
             
             for (const cloud of poisonClouds) {
                 ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
@@ -3944,31 +4006,24 @@ if (laser.active) {
 
             // --- Enemies ---
             for (const e of enemies) {
+                let alpha = 1;
+
                 if (e.type === 'teleporter') {
-                    ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 200) * 0.3;
+                    alpha = 0.7 + Math.sin(now / 200) * 0.3;
                 }
 
-                // Status Effects
-                if (e.poisonTimer > 0) {
-                    drawPolygon(e.x, e.y, e.radius, e.sides, '#22C55E');
-                } else if (e.slowTimer > 0) {
-                    drawPolygon(e.x, e.y, e.radius, e.sides, '#5EEAD4');
-                } else {
-                    drawPolygon(e.x, e.y, e.radius, e.sides, e.originalColor);
-                }
+                const img = Assets.enemies[e.type] || Assets.enemies.basic;
 
-                ctx.globalAlpha = 1.0;
+                drawEntityImage(
+                    img,
+                    e.x,
+                    e.y,
+                    e.radius,
+                    e.rotation || 0,
+                    alpha
+                );
 
-                // Boss Outline
-                if (e.type === 'boss') {
-                    ctx.strokeStyle = '#DC2626';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.arc(e.x, e.y, e.radius + 5, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-
-                // HP Bar
+                // --- HP Bar (unchanged) ---
                 if (e.hp < e.maxHp) {
                     ctx.fillStyle = '#4B5563';
                     ctx.fillRect(e.x - e.radius, e.y - e.radius - 8, e.radius * 2, 5);
@@ -3982,28 +4037,28 @@ if (laser.active) {
                 }
             }
             // --- DRAW LASER ---
-const laser = player.weapons.laser;
+            const laser = player.weapons.laser;
 
-if (laser.active && laser.target) {
-    let angle = Math.atan2(
-        laser.target.y - player.y,
-        laser.target.x - player.x
-    );
+            if (laser.active && laser.target) {
+                let angle = Math.atan2(
+                    laser.target.y - player.y,
+                    laser.target.x - player.x
+                );
 
-    // laser ends at max range, not INFINITE
-    const endX = player.x + Math.cos(angle) * laser.range;
-    const endY = player.y + Math.sin(angle) * laser.range;
+                // laser ends at max range, not INFINITE
+                const endX = player.x + Math.cos(angle) * laser.range;
+                const endY = player.y + Math.sin(angle) * laser.range;
 
-    ctx.strokeStyle = '#F87171';
-    ctx.lineWidth = (3 + (laser.level * 1.5)) * player.aoeMultiplier;
+                ctx.strokeStyle = '#F87171';
+                ctx.lineWidth = (3 + (laser.level * 1.5)) * player.aoeMultiplier;
 
-    ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 50) * 0.3;
-    ctx.beginPath();
-    ctx.moveTo(player.x, player.y);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-}
+                ctx.globalAlpha = 0.7 + Math.sin(Date.now() / 50) * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
 
             // --- Lightning ---
             for (const bolt of lightningBolts) {
@@ -4059,10 +4114,13 @@ if (laser.active && laser.target) {
             if (player.invincible && Math.floor(Date.now() / 100) % 2 === 0) {
                 // blink
             } else {
-                ctx.fillStyle = player.color;
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-                ctx.fill();
+                drawEntityImage(
+                    Assets.player,
+                    player.x,
+                    player.y,
+                    player.radius,
+                    player.rotation || 0
+                );
             }
 
             // --- Shield Orbit ---
