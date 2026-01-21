@@ -1446,12 +1446,31 @@
         }
 
         function gameLoop() {
+            if (player.hp <= 0) {
+                player.hp = 0;
+                // --- NEW: Phoenix Heart & Last Stand ---
+                if (player.hasArtifact['phoenix_heart'] && !player.phoenixHeartUsed) {
+                    player.phoenixHeartUsed = true;
+                    player.hp = player.maxHp;
+                    player.invincible = true;
+                    player.invincibleTimer = 5000;
+                }
+                else if (player.hasLastStand) {
+                    player.hasLastStand = false; // Used up
+                    player.hp = 1;
+                    player.invincible = true;
+                    player.invincibleTimer = 3000;
+                } else {
+                    game.gameOver = true;
+                }
+            }
             // --- NEW: Reworked Game Loop ---
             if (game.gameOver) {
                 showGameOver();
                 cancelAnimationFrame(game.animationFrameId);
                 return;
             }
+
             
             const now = Date.now();
             
@@ -3090,9 +3109,7 @@ if (laser.active) {
             pauseGame();
             player.level++;
             player.xpToNextLevel = Math.floor(player.xpToNextLevel * 1.4);
-            
-            player.hp = player.maxHp; 
-            
+                        
             showLevelUpModal();
         }
 
